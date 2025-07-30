@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PraWise AI - Offline Demo</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="chatbox">
+    <h2 class="brand-title">🤖 PraWise AI</h2>
+    <p class="tagline">Your Offline Assistant Demo</p>
+
+    <div id="chat-window">
+      {% for msg in history %}
+        <div class="{{ 'user-msg' if msg.role == 'user' else 'bot-msg' }}">
+          <div><b>{{ 'You:' if msg.role == 'user' else 'PraWise AI:' }}</b> {{ msg.message }}</div>
+          <small class="timestamp">🕒 {{ msg.timestamp.strftime('%b %d, %Y %I:%M %p') }}</small>
+        </div>
+      {% endfor %}
+    </div>
+
+    <textarea id="user-input" placeholder="Type something..." rows="2"></textarea>
+    <button onclick="sendMessage()">Submit</button>
+    <button onclick="clearChat()" class="clear-btn">Clear Chat</button>
+  </div>
+
+<script>
+  document.getElementById("user-input").addEventListener("keydown", function(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  async function sendMessage() {
+    const input = document.getElementById("user-input");
+    const message = input.value.trim();
+    if (!message) return;
+
+    const chatWindow = document.getElementById("chat-window");
+    chatWindow.innerHTML += `<div class="user-msg"><b>You:</b> ${message}</div>`;
+    input.value = "";
+
+    const typingId = `typing-${Date.now()}`;
+    chatWindow.innerHTML += `<div class="bot-msg" id="${typingId}"><b>PraWise AI:</b> <span class="typing">typing...</span></div>`;
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+
+    const data = await res.json();
+    document.getElementById(typingId).innerHTML = `<b>PraWise AI:</b> ${data.response}`;
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+
+  function clearChat() {
+    fetch("/clear", { method: "POST" }).then(() => {
+      document.getElementById("chat-window").innerHTML = "";
+    });
+  }
+</script>
+</body>
+</html>
